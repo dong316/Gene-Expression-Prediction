@@ -3,7 +3,7 @@
 ### input file: 
 simulated_5mer_data.csv
 ## 1. how to use the scripts:
-#### 1.1 Hyperparameter tuning
+#### 1.1 Hyperparameter tuning using GridSearchCV
 ```
 python HP_tuning2.py --data simulated_5mer_data.csv \
     --learning_rates 0.001 0.005 0.01 0.05 0.1  \
@@ -14,17 +14,17 @@ python HP_tuning2.py --data simulated_5mer_data.csv \
     --heatmap_out hp_heatmap3.png \
     --best_params_out best_hp.json
 ```
-#### 1.2.1 Training the model using best parameters from step1
+#### 1.2.1 Training the model using best hyperparameters from step1
 ```
 python XGB_training2.py --data simulated_5mer_data.csv \
     --best best_hp.json \
     --model_out final_model.json \
     --plot_out rmse_epochs.png
 ```
-#### 1.2.2 training the model using explicitly defined parameters
+#### 1.2.2 Training the model using explicitly defined hyperparameters
 ```
 python XGB_training2.py --data simulated_5mer_data.csv \
-    --lr 0.01 --n_est 5000 --max_depth 3 --sub 0.8 --col 0.8 \
+    --lr 0.01 --n_est 5000 --max_depth 3 --sub 0.8 --col 0.8 --early 200 \
     --model_out final_model.json --plot_out rmse_epochs.png
 ```
 
