@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import pearsonr
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -27,6 +30,12 @@ def main():
                         help="Explicit colsample_bytree ratio (if --best is not provided)")
     parser.add_argument("--model_out", type=str, default="final_model.json",
                         help="Path to save the final trained model")
+    parser.add_argument("--imp_csv", type=str, default="feature_importance.csv",
+                        help="Output CSV file for feature importance")
+    parser.add_argument("--imp_png", type=str, default="feature_importance.png",
+                        help="Output PNG file for feature importance plot")
+    parser.add_argument("--scatter_png", type=str, default="true_vs_predicted.png",
+                        help="Output PNG file for scatter plot of true vs predicted values")
     parser.add_argument("--plot_out", type=str, default="rmse_epochs.png",
                         help="Path to save the RMSE over epochs plot")
     parser.add_argument("--test_size", type=float, default=0.2,
@@ -103,6 +112,36 @@ def main():
     model.save_model(args.model_out)
     print(f"Model saved to {args.model_out}")
 
+    # -------------------------------
+    # Feature Importance Extraction and Plotting
+    # -------------------------------
+    #booster = model.get_booster()
+    importance_dict = model.get_score(importance_type='gain')
+    
+    importance_df = pd.DataFrame(list(importance_dict.items()), columns=['Feature', 'Importance'])
+    # Save feature importance as CSV.
+    importance_df.to_csv(args.imp_csv, index=False)
+    print(f"Feature importance saved to {args.imp_csv}")
+    
+    # Plot feature importance as a bar plot (you can modify to show top features only if desired).
+    # For instance, to plot the top 30 features:
+    importance_df_sorted = importance_df.sort_values(by='Importance', ascending=False)
+    top30 = importance_df_sorted.head(30)
+    
+    # Plotting
+    plt.figure(figsize=(12, 8))
+    plt.barh(top30['Feature'], top30['Importance'], color='skyblue')
+    plt.xlabel("Importance (Gain)", fontsize=14)
+    plt.ylabel("Feature", fontsize=14)
+    plt.title("Top 30 Feature Importances", fontsize=16)
+    plt.gca().invert_yaxis()  # so that the highest importance appears at the top
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
+    plt.savefig(args.imp_png, format="png")
+    print(f"Feature importance plot saved to {args.imp_png}")
+    plt.show()
+
     # Plot RMSE over epochs.
     epochs = list(range(1, len(evals_result["train"]["rmse"]) + 1))
     plt.figure(figsize=(10, 6))
@@ -118,7 +157,36 @@ def main():
     print(f"RMSE plot saved to {args.plot_out}")
     plt.close()
 
-    # Evaluate on test set.
+    y_train_pred = model.predict(dtrain)
+    y_test_pred = model.predict(dtest)
+
+    # Calculate Pearson correlation coefficients.
+    pearson_train, p_train = pearsonr(y_train, y_train_pred)
+    pearson_test, p_test = pearsonr(y_test, y_test_pred)
+
+    # Also, obtain the true labels from the training and test sets.
+    # (Assuming you have y_train and y_test already from train_test_split)
+
+    plt.figure(figsize=(10, 8))
+
+    # Plot the training set scatter and regression line.
+    sns.regplot(x=y_train, y=y_train_pred, ci=None, color='blue', marker='o',
+                label=f"Train (Pearson'r={pearson_train:.2f})", scatter_kws={'alpha':0.4})
+
+    # Plot the test set scatter and regression line.
+    sns.regplot(x=y_test, y=y_test_pred, ci=None, color='red', marker='s',
+                label=f"Test (Pearson'r={pearson_test:.2f})", scatter_kws={'alpha':0.4})
+
+    plt.xlabel("True Values")
+    plt.ylabel("Predicted Values")
+    plt.title("True vs Predicted Values (Train and Test Sets)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(args.scatter_png, format="png")
+    print(f"Scatter plot saved to {args.scatter_png}")
+    plt.show()
+
+    # Final evaluate on test set.
     y_pred = model.predict(dtest)
     mse = mean_squared_error(y_test, y_pred)
     final_rmse = np.sqrt(mse)
@@ -132,4 +200,4 @@ if __name__ == "__main__":
 
 # python XGB_training2.py --data simulated_5mer_data.csv --best best_hp.json --model_out final_model.json --plot_out rmse_epochs.png
 # python XGB_training2.py --data simulated_5mer_data.csv --lr 0.01 --n_est 500 --max_depth 3 --sub 0.8 --col 0.8 --model_out final_model.json --plot_out rmse_epochs.png
-
+# python XGB_training2.py --data merged_kmer_motif_counts_raw_expression.csv --lr 0.01 --n_est 20000 --max_depth 3 --sub 0.8 --col 0.8 --early 200 --imp_csv imp5.csv --imp_png imp5.png --scatter_png scatter5.png --model_out final_model5.json --plot_out rmse_epochs5.png
