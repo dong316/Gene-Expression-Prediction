@@ -23,9 +23,10 @@ python XGB_training2.py --data simulated_5mer_data.csv \
 ```
 #### 1.2.2 Training the model using explicitly defined hyperparameters
 ```
-python XGB_training2.py --data simulated_5mer_data.csv \
-    --lr 0.01 --n_est 5000 --max_depth 3 --sub 0.8 --col 0.8 --early 200 \
-    --model_out final_model.json --plot_out rmse_epochs.png
+python XGB_training2.py --data merged_kmer_motif_counts_raw_expression.csv \
+    --lr 0.01 --n_est 20000 --max_depth 3 --sub 0.8 --col 0.8 --early 200 \
+    --imp_csv imp5.csv --imp_png imp5.png --scatter_png scatter5.png \
+    --model_out final_model5.json --plot_out rmse_epochs5.png
 ```
 
 ## 2. Train the model using UW-Madison CHTC
@@ -33,7 +34,7 @@ python XGB_training2.py --data simulated_5mer_data.csv \
 ```
 simulated_5mer_data.csv   
 xgboost_env.sif  # environment image   
-XGB_training.sh  # executive bash file   
+XGB_training.sh  # executable bash file   
 XGB_training.sub # submit the bash file to CHTC
 ```
 
@@ -48,7 +49,7 @@ condor_submit XGB_training.sub
 # Provide HTCondor with the name of your .sif file and universe information
 container_image = file:///staging/wdong54/cs776/xgboost_env.sif         ### location of the .sif
 
-executable = XGB_training.sh                                            ### executive bash file
+executable = XGB_training.sh                                            ### executable bash file
 
 # Include other files that need to be transferred here.
 # transfer_input_files = HP_tuning2.py,simulated_5mer_data.csv
